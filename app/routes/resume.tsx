@@ -11,7 +11,7 @@ import { runOptimization, type OptimizeProgress } from "~/lib/optimizer";
 import SectionRewriter from "~/components/SectionRewriter";
 
 export const meta = () => ([
-  { title: "Resuman — Analysis Result" },
+  { title: "Resumate — Analysis Result" },
   { name: "description", content: "Review your AI résumé analysis." },
 ]);
 
@@ -28,7 +28,7 @@ const Resume = () => {
   const navigate = useNavigate();
 
   // Premium & Optimization States
-  const [isPremium, setIsPremium] = useState(false);
+  const [optCredits, setOptCredits] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
   const [optimizationProgress, setOptimizationProgress] = useState<OptimizeProgress | null>(null);
   const [optimizationResult, setOptimizationResult] = useState<ResumeOptimization | null>(null);
@@ -80,12 +80,16 @@ const Resume = () => {
     return () => { if (unsubscribe) unsubscribe(); };
   }, [isAuthenticated, id]);
 
+  const loadCredits = () => {
+    checkPremiumStatus().then(status => setOptCredits(status.optimizationCredits));
+  };
+
   useEffect(() => {
-    checkPremiumStatus().then(status => setIsPremium(status.isPremium));
+    loadCredits();
   }, []);
 
   const handleOptimize = async () => {
-    if (!isPremium) {
+    if (optCredits <= 0) {
       setShowPaywall(true);
       return;
     }
@@ -94,6 +98,12 @@ const Resume = () => {
     
     setOptimizationProgress({ step: "idle", message: "Starting optimization..." });
     try {
+      // Consume a credit
+      const { useOptimizationCredit } = await import("~/lib/premium");
+      const used = await useOptimizationCredit();
+      if (!used) throw new Error("Not enough credits.");
+      loadCredits(); // Refresh local count
+
       const result = await runOptimization(
         resumeText,
         companyInfo.title,
@@ -116,7 +126,7 @@ const Resume = () => {
         <div style={{ textAlign: "center" }}>
           <div style={{ width: 52, height: 52, borderRadius: "100%", border: "2px solid var(--color-taupe-light)", borderTopColor: "var(--color-olive)", animation: "spin 1s linear infinite", margin: "0 auto 1.5rem" }} />
           <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.4rem", color: "var(--color-espresso)", margin: "0 0 0.375rem" }}>Loading analysis…</p>
-          <span style={{ fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--color-stone-light)" }}>Resuman</span>
+          <span style={{ fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--color-stone-light)" }}>Resumate</span>
         </div>
       </div>
     );
@@ -128,7 +138,7 @@ const Resume = () => {
       if (typeof window !== "undefined") {
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key && key.startsWith("resuman_cache_")) {
+          if (key && key.startsWith("resumate_cache_")) {
             const raw = localStorage.getItem(key);
             if (raw && raw.includes(id as string)) {
               localStorage.removeItem(key);
@@ -248,17 +258,17 @@ const Resume = () => {
                       )}
                     </div>
                   ) : (
-                    <button 
-                      onClick={handleOptimize}
-                      className="btn-primary" 
-                      style={{ 
-                        background: "#F7F4EF", color: "#2C2318", border: "none", 
-                        padding: "0.875rem 1.5rem", fontSize: "0.85rem", boxShadow: "0 4px 15px rgba(0,0,0,0.1)" 
-                      }}
-                    >
-                      {isPremium ? "Start AI Optimization" : "Unlock Auto-Optimize"}
-                      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                    </button>
+                      <button 
+                        onClick={handleOptimize}
+                        className="btn-primary" 
+                        style={{ 
+                          background: "#F7F4EF", color: "#2C2318", border: "none", 
+                          padding: "0.875rem 1.5rem", fontSize: "0.85rem", boxShadow: "0 4px 15px rgba(0,0,0,0.1)" 
+                        }}
+                      >
+                        {optCredits > 0 ? "Start AI Optimization" : "Unlock Auto-Optimize"}
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                      </button>
                   )}
                 </div>
                 
@@ -294,15 +304,16 @@ const Resume = () => {
 
       {/* Footer */}
       <footer style={{ borderTop: "1px solid rgba(196,181,160,0.2)", padding: "clamp(1.5rem, 4vw, 3rem)", textAlign: "center" }}>
-        <span style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-stone-light)" }}>Resuman</span>
+        <span style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-stone-light)" }}>Resumate</span>
       </footer>
 
       {/* Paywall Modal */}
       {showPaywall && (
         <PaywallModal 
+          feature="auto-optimize"
           onClose={() => setShowPaywall(false)} 
           onSuccess={() => {
-            setIsPremium(true);
+            loadCredits();
             setShowPaywall(false);
             setTimeout(() => {
               handleOptimize(); // Use the timeout so state has a moment to settle if needed

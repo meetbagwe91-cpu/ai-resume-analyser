@@ -9,5 +9,10 @@ export default [
     route("help", "routes/help.tsx"),
     route("privacy", "routes/privacy.tsx"),
     route("terms", "routes/terms.tsx"),
+    route("refund", "routes/refund.tsx"),
+    route("contact", "routes/contact.tsx"),
     route("wipe", "routes/wipe.tsx"),
+    route("api/create-order", "routes/api.create-order.ts"),
+    route("api/verify-payment", "routes/api.verify-payment.ts"),
+    route("api/webhooks/razorpay", "routes/api.webhooks.razorpay.ts"),
 ] satisfies RouteConfig;

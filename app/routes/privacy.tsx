@@ -1,8 +1,8 @@
 import Navbar from "~/components/Navbar";
 
 export const meta = () => ([
-  { title: "Resuman — Privacy Policy" },
-  { name: "description", content: "Privacy Policy for Resuman." },
+  { title: "Resumate — Privacy Policy" },
+  { name: "description", content: "Privacy Policy for Resumate." },
 ]);
 
 const PrivacyPolicy = () => {
@@ -18,7 +18,7 @@ const PrivacyPolicy = () => {
         <div className="card-elevated" style={{ padding: "3rem", fontSize: "0.95rem", lineHeight: 1.7, color: "var(--color-espresso)" }}>
           <h2 style={{ fontSize: "1.5rem", marginTop: 0 }}>1. Introduction</h2>
           <p>
-            Welcome to Resuman. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights.
+            Welcome to Resumate. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights.
           </p>
 
           <h2 style={{ fontSize: "1.5rem", marginTop: "2rem" }}>2. Data We Collect</h2>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAppStore } from "~/lib/store";
 
-export const meta = () => ([{ title: "Resuman — Data Management" }]);
+export const meta = () => ([{ title: "Resumate — Data Management" }]);
 
 const WipeApp = () => {
   const { isAuthenticated, isLoading, user } = useAppStore();

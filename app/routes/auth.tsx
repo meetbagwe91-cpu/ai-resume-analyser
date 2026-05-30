@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
 export const meta = () => ([
-  { title: "Resuman — Sign In" },
+  { title: "Resumate — Sign In" },
   { name: "description", content: "Sign in to access your résumé dashboard." },
 ]);
 
@@ -86,7 +86,7 @@ const Auth = () => {
 
   const titles: Record<AuthMode, { heading: string; sub: string }> = {
     signin: { heading: "Welcome back.", sub: "Enter your credentials to access your résumé intelligence dashboard." },
-    signup: { heading: "Create account.", sub: "Join Resuman and start optimizing your résumé with AI." },
+    signup: { heading: "Create account.", sub: "Join Resumate and start optimizing your résumé with AI." },
     reset: { heading: "Reset password.", sub: "Enter your email and we'll send you a link to reset your password." },
   };
 
@@ -128,7 +128,7 @@ const Auth = () => {
 
         {/* Wordmark */}
         <div style={{ marginBottom: "2rem" }}>
-          <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.5rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-espresso)", margin: 0, fontWeight: 600 }}>Resuman</p>
+          <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.5rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-espresso)", margin: 0, fontWeight: 600 }}>Resumate</p>
         </div>
 
         <div className="divider" />

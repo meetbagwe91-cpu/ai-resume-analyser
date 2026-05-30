@@ -29,7 +29,7 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="brand-wordmark" style={{ zIndex: 51 }}>Resuman</Link>
+      <Link to="/" className="brand-wordmark" style={{ zIndex: 51 }}>Resumate</Link>
       
       {/* Desktop Navigation */}
       <div className="hide-on-mobile" style={{ display: "flex", alignItems: "center", gap: "2.5rem" }}>

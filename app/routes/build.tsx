@@ -4,9 +4,11 @@ import { useAppStore } from "~/lib/store";
 import { useNavigate } from "react-router";
 import { buildResumeFromScratch, type BuildProgress } from "~/lib/resume-builder";
 import OptimizedResumeView from "~/components/OptimizedResumeView";
+import PaywallModal from "~/components/PaywallModal";
+import { checkPremiumStatus, useBuildCredit } from "~/lib/premium";
 
 export const meta = () => ([
-  { title: "Resuman — AI Resume Builder" },
+  { title: "Resumate — AI Resume Builder" },
   { name: "description", content: "Build a highly optimized resume from scratch using AI." },
 ]);
 
@@ -19,6 +21,10 @@ export default function BuildResume() {
   const [progress, setProgress] = useState<BuildProgress | null>(null);
   const [result, setResult] = useState<ResumeOptimization | null>(null);
   const [error, setError] = useState("");
+  
+  // Credits and Paywall state
+  const [bldCredits, setBldCredits] = useState(0);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -30,12 +36,19 @@ export default function BuildResume() {
     projects: [{ id: 1, name: "", technologies: "", details: "" }]
   });
 
+  const loadCredits = () => {
+    checkPremiumStatus().then(status => setBldCredits(status.buildCredits));
+  };
+
+  useEffect(() => {
+    loadCredits();
+  }, []);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) navigate("/auth?next=/build");
   }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading || !isAuthenticated) return null; // Prevent flashing the UI
-
 
   const updateForm = (key: string, value: any) => setFormData(p => ({ ...p, [key]: value }));
 
@@ -45,9 +58,19 @@ export default function BuildResume() {
   };
 
   const handleBuild = async () => {
+    if (bldCredits <= 0) {
+      setShowPaywall(true);
+      return;
+    }
+
     setIsBuilding(true);
     setError("");
     try {
+      // Consume a credit
+      const used = await useBuildCredit();
+      if (!used) throw new Error("Not enough credits.");
+      loadCredits(); // Refresh local count
+
       const generated = await buildResumeFromScratch(formData, setProgress);
       setResult(generated);
       
@@ -239,7 +262,7 @@ export default function BuildResume() {
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: "2rem" }}>
                     <button onClick={() => setStep(2)} className="btn-secondary">Back</button>
                     <button onClick={handleBuild} className="btn-primary" style={{ background: "var(--color-olive)", border: "none", color: "#fff" }}>
-                      Generate Resume Now
+                      {bldCredits > 0 ? "Generate Resume Now" : "Unlock AI Builder"}
                       <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     </button>
                   </div>
@@ -250,6 +273,22 @@ export default function BuildResume() {
           </>
         )}
       </section>
+
+      {showPaywall && (
+        <PaywallModal 
+          feature="build-ai"
+          onClose={() => setShowPaywall(false)} 
+          onSuccess={() => {
+            loadCredits();
+            setShowPaywall(false);
+            setTimeout(() => {
+              handleBuild();
+            }, 0);
+          }} 
+          userName={user?.displayName || user?.email || ""} 
+          userEmail={user?.email || ""}
+        />
+      )}
     </div>
   );
 }

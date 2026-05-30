@@ -12,13 +12,14 @@ import LoadingSkeleton from "~/components/LoadingSkeleton";
 import SupportWidget from "~/components/SupportWidget";
 import OnboardingTour from "~/components/OnboardingTour";
 import JobMatchingPanel from "~/components/JobMatchingPanel";
+import PricingPanel from "~/components/PricingPanel";
 import { useAppStore } from "~/lib/store";
 import { Link, useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Resuman — AI Résumé Analyzer" },
+    { title: "Resumate — AI Résumé Analyzer" },
     { name: "description", content: "Get intelligent, actionable feedback on your résumé." },
   ];
 }
@@ -148,7 +149,7 @@ export default function Home() {
               color: "var(--color-espresso)",
               margin: 0,
             }}>
-              Resuman
+              Resumate
             </h1>
 
             {/* Tagline */}
@@ -409,6 +410,9 @@ export default function Home() {
                   {/* Templates Tab */}
                   {activeTab === "templates" && user && <FavoriteTemplates userId={user.uid} />}
 
+                  {/* Pricing Plans Tab */}
+                  {activeTab === "plans" && <PricingPanel />}
+
                   {/* Profile Tab */}
                   {activeTab === "profile" && user && <ProfileSettings userId={user.uid} />}
 
@@ -424,12 +428,21 @@ export default function Home() {
       {/* Footer */}
       <footer style={{
         borderTop: "1px solid rgba(196,181,160,0.25)",
-        padding: "1.5rem 2rem",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        flexWrap: "wrap", gap: "1rem",
+        padding: "2rem",
+        display: "flex", flexDirection: "column", gap: "1rem"
       }}>
-        <span style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", letterSpacing: "0.12em", color: "var(--color-espresso)", textTransform: "uppercase" }}>Resuman</span>
-        <p style={{ fontSize: "0.7rem", color: "var(--color-stone-light)", margin: 0, letterSpacing: "0.08em" }}>AI résumé intelligence. All rights reserved.</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+          <span style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", letterSpacing: "0.12em", color: "var(--color-espresso)", textTransform: "uppercase" }}>Resumate</span>
+          <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", fontSize: "0.8rem" }}>
+            <Link to="/terms" style={{ color: "var(--color-stone)", textDecoration: "none" }}>Terms & Conditions</Link>
+            <Link to="/privacy" style={{ color: "var(--color-stone)", textDecoration: "none" }}>Privacy Policy</Link>
+            <Link to="/refund" style={{ color: "var(--color-stone)", textDecoration: "none" }}>Refund Policy</Link>
+            <Link to="/contact" style={{ color: "var(--color-stone)", textDecoration: "none" }}>Contact Us</Link>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", borderTop: "1px solid rgba(196,181,160,0.15)", paddingTop: "1rem" }}>
+          <p style={{ fontSize: "0.7rem", color: "var(--color-stone-light)", margin: 0, letterSpacing: "0.08em" }}>© {new Date().getFullYear()} Resumate Technologies. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );

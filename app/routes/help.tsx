@@ -1,8 +1,8 @@
 import Navbar from "~/components/Navbar";
 
 export const meta = () => ([
-  { title: "Resuman — Help Center" },
-  { name: "description", content: "Frequently asked questions and support for Resuman." },
+  { title: "Resumate — Help Center" },
+  { name: "description", content: "Frequently asked questions and support for Resumate." },
 ]);
 
 const HelpCenter = () => {
@@ -31,7 +31,7 @@ const HelpCenter = () => {
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "6rem 2rem", minHeight: "100vh" }}>
         <h1 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1rem" }}>Help Center & FAQ</h1>
         <p style={{ fontSize: "1.1rem", color: "var(--color-stone)", marginBottom: "3rem" }}>
-          Everything you need to know about getting the most out of Resuman.
+          Everything you need to know about getting the most out of Resumate.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -48,7 +48,7 @@ const HelpCenter = () => {
           <p style={{ margin: "0 0 1.5rem", fontSize: "0.95rem", color: "var(--color-stone)" }}>
             Our support team is always ready to assist you.
           </p>
-          <a href="mailto:support@resuman.com" className="btn-primary" style={{ display: "inline-flex", textDecoration: "none" }}>
+          <a href="mailto:support@resumate.com" className="btn-primary" style={{ display: "inline-flex", textDecoration: "none" }}>
             Contact Support
           </a>
         </div>

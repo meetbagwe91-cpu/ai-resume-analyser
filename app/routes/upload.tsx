@@ -9,12 +9,12 @@ import { extractTextFromPdfFile } from "~/lib/pdf-parser";
 import { queryGroq } from "~/lib/groq";
 
 export const meta = () => ([
-  { title: "Resuman — New Analysis" },
+  { title: "Resumate — New Analysis" },
   { name: "description", content: "Upload your résumé for intelligent AI feedback." },
 ]);
 
 // ─── localStorage result cache ────────────────────────────────────────────────
-const CACHE_PREFIX = "resuman_cache_";
+const CACHE_PREFIX = "resumate_cache_";
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function readCache(hash: string): string | null {

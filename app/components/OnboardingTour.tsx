@@ -11,7 +11,7 @@ const OnboardingTour = () => {
   const steps: any[] = [
     {
       target: "body",
-      content: "Welcome to Resuman! Let's take a quick tour to help you get the most out of your résumé analysis.",
+      content: "Welcome to Resumate! Let's take a quick tour to help you get the most out of your résumé analysis.",
       placement: "center",
       disableBeacon: true,
     },
@@ -36,7 +36,7 @@ const OnboardingTour = () => {
     if (!user) return;
     
     // Check local storage or firestore to see if user has seen the tour
-    const hasSeenTour = localStorage.getItem(`resuman_tour_${user.uid}`);
+    const hasSeenTour = localStorage.getItem(`resumate_tour_${user.uid}`);
     if (!hasSeenTour) {
       // Delay starting the tour to let the dashboard render
       setTimeout(() => setRun(true), 1000);
@@ -50,7 +50,7 @@ const OnboardingTour = () => {
     if (finishedStatuses.includes(status)) {
       setRun(false);
       if (user) {
-        localStorage.setItem(`resuman_tour_${user.uid}`, "true");
+        localStorage.setItem(`resumate_tour_${user.uid}`, "true");
         // Optionally save this to user_preferences in Firestore too
       }
     }
