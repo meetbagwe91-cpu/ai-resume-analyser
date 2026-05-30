@@ -75,6 +75,30 @@ interface Job {
   requiredSkills: string[];
 }
 
+interface ResumeVersion {
+  versionId: string;
+  createdAt: string;
+  atsScore: number;
+  changesSummary: string;
+  optimizationData?: OptimizedResume;
+}
+
+interface DownloadRecord {
+  downloadedAt: string;
+  format: "pdf";
+  filename: string;
+}
+
+interface UserPreferences {
+  favoriteTemplates: string[];
+  careerField?: string;
+  experienceLevel?: "entry" | "mid" | "senior" | "executive";
+  targetRole?: string;
+  resumeStyle?: "modern" | "classic" | "minimalist" | "bold" | "creative" | "executive" | "sleek" | "elegant" | "tech" | "corporate";
+  tone?: "formal" | "modern" | "creative" | "minimal";
+  updatedAt?: string;
+}
+
 interface Resume {
   id: string;
   companyName?: string;
@@ -84,6 +108,9 @@ interface Resume {
   feedback: Feedback;
   optimization?: ResumeOptimization;
   createdAt?: string;
+  isFavorite?: boolean;
+  versions?: ResumeVersion[];
+  downloads?: DownloadRecord[];
 }
 
 interface Feedback {
@@ -177,6 +204,7 @@ interface DeepDiagnosis {
     priority: "high" | "medium" | "low";
   }[];
   missingKeywords: string[];
+  foundKeywords?: string[];
   weakBullets: {
     original: string;
     reason: string;
@@ -185,6 +213,7 @@ interface DeepDiagnosis {
   atsWarnings: string[];
   roleAlignmentScore: number;
   overallReadiness: "poor" | "fair" | "good" | "excellent";
+  suggestedJobTitles?: string[];
 }
 
 /** Optimized résumé output from Phase 2 */

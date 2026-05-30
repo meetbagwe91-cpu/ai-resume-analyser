@@ -136,13 +136,15 @@ export const DiagnosisResponseFormat = `{
     { "category": "ATS|Content|Structure|Skills|Keywords|Alignment", "issue": "string", "impact": "string", "priority": "high|medium|low" }
   ],
   "missingKeywords": ["string"],
+  "foundKeywords": ["string"],
   "weakBullets": [
     { "original": "the exact weak bullet text", "reason": "why it is weak" }
   ],
   "structureProblems": ["string"],
   "atsWarnings": ["string"],
   "roleAlignmentScore": 0-100,
-  "overallReadiness": "poor|fair|good|excellent"
+  "overallReadiness": "poor|fair|good|excellent",
+  "suggestedJobTitles": ["title1", "title2", "title3"]
 }`;
 
 export const prepareDeepDiagnosisPrompt = ({
@@ -165,12 +167,13 @@ PREVIOUS BASIC ANALYSIS (for context): ${existingFeedback}
 
 ANALYZE EVERY ASPECT:
 1. ATS COMPATIBILITY: Will this résumé pass automated screening? Check section headers, formatting, keyword density, file structure.
-2. KEYWORD GAPS: What role-critical keywords are missing? Compare against the job description.
+2. KEYWORD OVERLAP & GAPS: Identify 'foundKeywords' (role-critical keywords present) and 'missingKeywords' (role-critical keywords missing). Compare against the job description.
 3. WEAK BULLET POINTS: Find every bullet that is vague, lacks metrics, uses passive voice, or doesn't show impact. Quote each one exactly.
 4. STRUCTURE: Is the section order optimal? Are headers ATS-standard? Is there wasted space?
 5. CONTENT: Is the summary too generic? Are skills relevant? Are achievements quantified?
 6. ROLE ALIGNMENT: How well does this résumé target the specific role?
 7. MISSING SECTIONS: Is anything critical missing (summary, skills, projects)?
+8. JOB TITLE RECOMMENDATIONS: Suggest 3 alternate job titles ('suggestedJobTitles') this raw résumé is naturally suited for based on the candidate's core skills and experience level.
 
 Be brutally honest. The user is paying for this analysis to improve.
 

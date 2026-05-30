@@ -220,7 +220,7 @@ const Upload = () => {
     <div className="page-shell">
       <Navbar />
 
-      <section style={{ padding: "5rem 3rem 8rem", maxWidth: 800, margin: "0 auto" }}>
+      <section style={{ padding: "clamp(3rem, 5vw, 5rem) clamp(1.25rem, 4vw, 3rem) 8rem", maxWidth: 800, margin: "0 auto" }}>
         <div style={{ position: "fixed", inset: 0, zIndex: -1 }}>
           <img src="/images/img1.jpeg" alt="Background" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           <div style={{ position: "absolute", inset: 0, background: "rgba(247, 244, 239, 0.5)" }} />
@@ -234,9 +234,9 @@ const Upload = () => {
           </p>
         </div>
 
-        <div className="card-elevated anim-fade-up anim-delay-1" style={{ padding: "3rem 3.5rem" }}>
+        <div className="card-elevated anim-fade-up anim-delay-1" style={{ padding: "clamp(1.5rem, 5vw, 3rem) clamp(1.5rem, 5vw, 3.5rem)" }}>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", width: "100%", marginBottom: "1.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem", width: "100%", marginBottom: "1.5rem" }}>
               <div className="field">
                 <label htmlFor="companyName">Target Company</label>
                 <input type="text" name="companyName" id="companyName" placeholder="e.g. Stripe, Google" required />

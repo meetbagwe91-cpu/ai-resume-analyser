@@ -68,13 +68,35 @@ const DiagnosisCard = ({ diagnosis }: { diagnosis: DeepDiagnosis }) => (
       </div>
     )}
 
-    {/* Missing Keywords */}
-    {diagnosis.missingKeywords?.length > 0 && (
+    {/* Keyword Overlap Analysis */}
+    {(diagnosis.foundKeywords?.length > 0 || diagnosis.missingKeywords?.length > 0) && (
       <div style={{ marginBottom: "2rem" }}>
-        <span className="section-label">Missing Keywords ({diagnosis.missingKeywords.length})</span>
+        <span className="section-label">Keyword Overlap Analysis</span>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-          {diagnosis.missingKeywords.map((kw, i) => (
-            <span key={i} style={{ padding: "0.3rem 0.875rem", background: "var(--color-amber-light)", color: "var(--color-amber-warm)", border: "1px solid rgba(184,137,42,0.2)", borderRadius: "100px", fontSize: "0.78rem", fontWeight: 500 }}>{kw}</span>
+          {diagnosis.foundKeywords?.map((kw, i) => (
+            <span key={`found-${i}`} style={{ padding: "0.3rem 0.875rem", background: "var(--color-sage-light)", color: "var(--color-sage-dark)", border: "1px solid rgba(123,155,126,0.2)", borderRadius: "100px", fontSize: "0.78rem", fontWeight: 500 }}>
+              ✓ {kw}
+            </span>
+          ))}
+          {diagnosis.missingKeywords?.map((kw, i) => (
+            <span key={`missing-${i}`} style={{ padding: "0.3rem 0.875rem", background: "var(--color-clay-light)", color: "var(--color-clay)", border: "1px solid rgba(168,92,74,0.2)", borderRadius: "100px", fontSize: "0.78rem", fontWeight: 500 }}>
+              ✗ {kw}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Job Title Recommendations */}
+    {diagnosis.suggestedJobTitles?.length > 0 && (
+      <div style={{ marginBottom: "2rem" }}>
+        <span className="section-label">Recommended Job Titles</span>
+        <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "var(--color-stone)" }}>Based on your core skills, your résumé is naturally suited for:</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {diagnosis.suggestedJobTitles.map((title, i) => (
+            <span key={`title-${i}`} style={{ padding: "0.4rem 1rem", background: "var(--color-cream-warm)", color: "var(--color-espresso)", border: "1px solid rgba(196,181,160,0.4)", borderRadius: "0.5rem", fontSize: "0.85rem", fontWeight: 500 }}>
+              {title}
+            </span>
           ))}
         </div>
       </div>

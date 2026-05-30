@@ -33,6 +33,7 @@
 
   /* Score / Status Colors – muted, earthy */
   --color-sage:        #7B9B7E;
+  --color-sage-dark:   #5A775C;
   --color-sage-light:  #E8F0E9;
   --color-amber-warm:  #B8892A;
   --color-amber-light: #F5EDDA;
@@ -77,11 +78,39 @@ h1, h2, h3 {
   letter-spacing: -0.01em;
 }
 
-h1 { font-size: clamp(3rem, 7vw, 6.5rem); }
-h2 { font-size: clamp(2rem, 4vw, 3.5rem); }
-h3 { font-size: clamp(1.4rem, 2.5vw, 2rem); font-weight: 500; }
+h1 { font-size: clamp(2rem, 6vw, 4.2rem); }
+h2 { font-size: clamp(1.4rem, 4vw, 2.5rem); }
+h3 { font-size: clamp(1.1rem, 3vw, 1.5rem); font-weight: 500; }
 
-p { color: var(--color-brown-mid); line-height: 1.75; }
+p { color: var(--color-brown-mid); line-height: 1.75; font-size: clamp(0.9rem, 2vw, 1rem); }
+
+/* ── Resume Template Isolation ──
+   Prevent global typography from bleeding into the PDF-rendered resume */
+#resume-template h1,
+#resume-template h2,
+#resume-template h3 {
+  font-family: inherit;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+}
+
+#resume-template p {
+  color: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+#resume-template ul {
+  list-style-type: disc;
+}
+
+#resume-template li {
+  color: inherit;
+}
 
 label {
   font-family: var(--font-sans);
@@ -130,12 +159,33 @@ form { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; align-it
 .page-shell {
   min-height: 100vh;
   background: transparent;
+  display: flex;
+  flex-direction: column;
 }
 
 .container-editorial {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .container-editorial {
+    padding: 0 2rem;
+  }
+}
+
+/* ── Responsive Visibility Helpers ── */
+.hide-on-mobile { display: block; }
+.hide-on-desktop { display: none; }
+.flex-hide-on-mobile { display: flex; }
+.flex-hide-on-desktop { display: none; }
+
+@media (max-width: 768px) {
+  .hide-on-mobile { display: none !important; }
+  .hide-on-desktop { display: block !important; }
+  .flex-hide-on-mobile { display: none !important; }
+  .flex-hide-on-desktop { display: flex !important; }
 }
 
 /* Navigation */
@@ -143,7 +193,7 @@ form { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; align-it
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.75rem 3rem;
+  padding: 1.25rem 2rem;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -155,7 +205,7 @@ form { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; align-it
 
 .brand-wordmark {
   font-family: var(--font-serif);
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   color: var(--color-espresso);
@@ -168,7 +218,7 @@ form { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; align-it
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.875rem 2.25rem;
+  padding: 0.75rem 1.75rem;
   background: var(--color-olive);
   color: #FAF7F2;
   font-family: var(--font-sans);
@@ -202,7 +252,7 @@ form { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; align-it
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.875rem 2.25rem;
+  padding: 0.75rem 1.75rem;
   background: transparent;
   color: var(--color-espresso);
   font-family: var(--font-sans);
@@ -407,6 +457,16 @@ form { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; align-it
    ============================================ */
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 

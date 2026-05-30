@@ -7,8 +7,8 @@ const CategoryRow = ({ title, score, icon }: CategoryRowProps) => {
   const barColor = score > 69 ? "var(--color-sage)" : score > 49 ? "var(--color-amber-warm)" : "var(--color-clay)";
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: "1.25rem",
-      padding: "1.125rem 1.5rem",
+      display: "flex", alignItems: "center", gap: "clamp(0.75rem, 2vw, 1.25rem)",
+      padding: "clamp(0.875rem, 3vw, 1.125rem) clamp(1rem, 3vw, 1.5rem)",
       background: "var(--color-parchment)",
       borderRadius: "1.25rem",
       border: "1px solid rgba(196,181,160,0.2)",
@@ -46,7 +46,7 @@ const iconStyle = { width: 18, height: 18 };
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.5 } as React.SVGProps<SVGSVGElement>;
 
 const Summary = ({ feedback }: { feedback: Feedback }) => (
-  <div className="card-elevated" style={{ padding: "2.5rem" }}>
+  <div className="card-elevated" style={{ padding: "clamp(1.5rem, 4vw, 2.5rem)" }}>
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
       {/* Header + Gauge */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "2rem", flexWrap: "wrap" }}>

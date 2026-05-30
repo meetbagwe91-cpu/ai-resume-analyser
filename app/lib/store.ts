@@ -1,5 +1,18 @@
 import { create } from "zustand";
-import { type User, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, getRedirectResult, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  type User,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  deleteUser,
+  updateProfile,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 
 interface AppStore {
@@ -9,7 +22,10 @@ interface AppStore {
   isAuthenticated: boolean;
   signIn: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, displayName?: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  deleteAccount: (password?: string) => Promise<boolean>;
   getUser: () => Promise<User | null>;
   initAuth: () => void;
   clearError: () => void;
@@ -22,7 +38,6 @@ export const useAppStore = create<AppStore>((set, get) => {
     set({ isLoading: true, error: null });
     try {
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged will handle setting the user
     } catch (err: any) {
       setError(err.message || "Sign in failed");
     }
@@ -43,9 +58,50 @@ export const useAppStore = create<AppStore>((set, get) => {
       } else if (err.code === "auth/invalid-email") {
         errorMessage = "The email address is badly formatted.";
       } else if (err.message) {
-        errorMessage = err.message; // Fallback to raw message if uncaught
+        errorMessage = err.message;
       }
       setError(errorMessage);
+    }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string, displayName?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      if (displayName && cred.user) {
+        await updateProfile(cred.user, { displayName });
+      }
+    } catch (err: any) {
+      let errorMessage = "Failed to create account.";
+      if (err.code === "auth/email-already-in-use") {
+        errorMessage = "An account with this email already exists.";
+      } else if (err.code === "auth/weak-password") {
+        errorMessage = "Password must be at least 6 characters.";
+      } else if (err.code === "auth/invalid-email") {
+        errorMessage = "The email address is badly formatted.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+    }
+  };
+
+  const sendPasswordReset = async (email: string): Promise<boolean> => {
+    set({ error: null });
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return true;
+    } catch (err: any) {
+      let errorMessage = "Failed to send reset email.";
+      if (err.code === "auth/user-not-found") {
+        errorMessage = "No account found with this email.";
+      } else if (err.code === "auth/invalid-email") {
+        errorMessage = "The email address is badly formatted.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      return false;
     }
   };
 
@@ -53,9 +109,35 @@ export const useAppStore = create<AppStore>((set, get) => {
     set({ isLoading: true, error: null });
     try {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will handle unsetting the user
     } catch (err: any) {
       setError(err.message || "Sign out failed");
+    }
+  };
+
+  const deleteAccount = async (password?: string): Promise<boolean> => {
+    const user = get().user;
+    if (!user) return false;
+    set({ isLoading: true, error: null });
+    try {
+      // Re-authenticate if email provider
+      if (password && user.email) {
+        const credential = EmailAuthProvider.credential(user.email, password);
+        await reauthenticateWithCredential(user, credential);
+      }
+      await deleteUser(user);
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      return true;
+    } catch (err: any) {
+      let errorMessage = "Failed to delete account.";
+      if (err.code === "auth/requires-recent-login") {
+        errorMessage = "Please sign out and sign back in before deleting your account.";
+      } else if (err.code === "auth/wrong-password") {
+        errorMessage = "Incorrect password.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      return false;
     }
   };
 
@@ -76,7 +158,6 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     set({ isLoading: true });
     
-    // Check for redirect errors
     getRedirectResult(auth).catch((err) => {
       console.error("Redirect sign-in error:", err);
       set({ error: err.message || "Authentication failed during redirect" });
@@ -98,9 +179,13 @@ export const useAppStore = create<AppStore>((set, get) => {
     isAuthenticated: false,
     signIn,
     loginWithEmail,
+    signUpWithEmail,
+    sendPasswordReset,
     signOut,
+    deleteAccount,
     getUser,
     initAuth,
     clearError: () => set({ error: null }),
   };
 });
+

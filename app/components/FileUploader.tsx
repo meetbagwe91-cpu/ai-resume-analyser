@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { formatSize } from "../lib/utils";
+import Tooltip from "./Tooltip";
 
 interface FileUploaderProps {
   onFileSelect?: (file: File | null) => void;
@@ -48,14 +49,18 @@ const FileUploader = ({ onFileSelect }: FileUploaderProps) => {
               browse files
             </span>
           </p>
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            {["PDF Only", `Max ${formatSize(maxSize)}`].map(t => (
-              <span key={t} style={{
-                fontSize: "0.7rem", fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase",
-                color: "var(--color-stone-light)", background: "var(--color-cream-warm)",
-                padding: "0.375rem 0.875rem", borderRadius: "100px", border: "1px solid rgba(196,181,160,0.3)"
-              }}>{t}</span>
-            ))}
+          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+            <Tooltip content="Files are securely processed and immediately encrypted. You can delete them at any time.">
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                {["PDF Only", `Max ${formatSize(maxSize)}`].map(t => (
+                  <span key={t} style={{
+                    fontSize: "0.7rem", fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase",
+                    color: "var(--color-stone-light)", background: "var(--color-cream-warm)",
+                    padding: "0.375rem 0.875rem", borderRadius: "100px", border: "1px solid rgba(196,181,160,0.3)"
+                  }}>{t}</span>
+                ))}
+              </div>
+            </Tooltip>
           </div>
         </div>
       ) : (

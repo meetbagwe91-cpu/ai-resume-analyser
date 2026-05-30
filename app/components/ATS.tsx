@@ -6,7 +6,7 @@ const ATS = ({ score, suggestions }: { score: number; suggestions: { type: "good
   const label = score > 69 ? "Excellent" : score > 49 ? "Fair" : "Needs Improvement";
 
   return (
-    <div className="card-elevated" style={{ padding: "2.5rem" }}>
+    <div className="card-elevated" style={{ padding: "clamp(1.5rem, 4vw, 2.5rem)" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "2rem", flexWrap: "wrap", marginBottom: "2rem" }}>
         <div>

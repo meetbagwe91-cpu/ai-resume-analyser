@@ -1,26 +1,73 @@
 import { useRef, useState } from "react";
-import { exportToPDF } from "~/lib/pdf-export";
+import { exportToPDF, logDownload } from "~/lib/pdf-export";
+import { exportToDOCX } from "~/lib/docx-export";
 import ResumeTemplate from "./ResumeTemplate";
 import DiagnosisCard from "./DiagnosisCard";
 
 interface OptimizedResumeViewProps {
   optimization: ResumeOptimization;
+  originalImageUrl?: string;
+  resumeId?: string;
   jobTitle: string;
 }
 
-const OptimizedResumeView = ({ optimization, jobTitle }: OptimizedResumeViewProps) => {
+const OptimizedResumeView = ({ optimization, jobTitle, resumeId }: OptimizedResumeViewProps) => {
   const templateRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportType, setExportType] = useState<"pdf" | "docx" | null>(null);
   const [activeTab, setActiveTab] = useState<"optimized" | "diagnosis" | "changelog">("optimized");
+  const [versionSaved, setVersionSaved] = useState(false);
+  const [savingVersion, setSavingVersion] = useState(false);
 
-  const handleDownload = async () => {
+  const handleDownloadPDF = async () => {
     if (!templateRef.current) return;
     setIsExporting(true);
+    setExportType("pdf");
     try {
-      await exportToPDF(templateRef.current, `optimized-resume-${Date.now()}.pdf`);
+      const filename = `optimized-resume-${Date.now()}.pdf`;
+      await exportToPDF(templateRef.current, filename);
+      if (resumeId) logDownload(resumeId, filename);
     } finally {
       setIsExporting(false);
+      setExportType(null);
     }
+  };
+
+  const handleDownloadDOCX = async () => {
+    setIsExporting(true);
+    setExportType("docx");
+    try {
+      const filename = `optimized-resume-${Date.now()}.docx`;
+      await exportToDOCX(optimization.optimized.parsed, filename);
+      if (resumeId) logDownload(resumeId, filename);
+    } finally {
+      setIsExporting(false);
+      setExportType(null);
+    }
+  };
+
+  const handleSaveVersion = async () => {
+    if (!resumeId || versionSaved) return;
+    setSavingVersion(true);
+    try {
+      const { db } = await import("~/lib/firebase");
+      const { doc, updateDoc, arrayUnion } = await import("firebase/firestore");
+      const version: ResumeVersion = {
+        versionId: `v_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        atsScore: optimization.optimized.atsScoreEstimate,
+        changesSummary: `${optimization.optimized.changeLog?.length ?? 0} improvements · Score: ${optimization.optimized.atsScoreEstimate}/100`,
+        optimizationData: optimization.optimized,
+      };
+      await updateDoc(doc(db, "resumes", resumeId), {
+        optimization,
+        versions: arrayUnion(version),
+      });
+      setVersionSaved(true);
+    } catch (e) {
+      console.error("Failed to save version:", e);
+    }
+    setSavingVersion(false);
   };
 
   const { diagnosis, optimized } = optimization;
@@ -28,7 +75,7 @@ const OptimizedResumeView = ({ optimization, jobTitle }: OptimizedResumeViewProp
   return (
     <div className="anim-fade-up" style={{ marginTop: "3rem" }}>
       {/* ── Section Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
         <div>
           <span className="section-label">Auto-Optimize Complete</span>
           <h2 style={{ margin: "0.5rem 0 0", fontSize: "2rem" }}>Your Optimized Résumé</h2>
@@ -37,24 +84,78 @@ const OptimizedResumeView = ({ optimization, jobTitle }: OptimizedResumeViewProp
             {" "}· {optimized.changeLog?.length ?? 0} improvements made · Click any text to edit before downloading.
           </p>
         </div>
-        <button
-          onClick={handleDownload}
-          disabled={isExporting}
-          className="btn-primary"
-          style={{ gap: "0.625rem", fontSize: "0.82rem" }}
-        >
-          {isExporting ? (
-            <>
-              <div style={{ width: 14, height: 14, borderRadius: "100%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.9s linear infinite" }} />
-              Exporting…
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Download Optimized PDF
-            </>
-          )}
-        </button>
+
+        {/* ── Export buttons ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isExporting}
+              className="btn-primary"
+              style={{ gap: "0.5rem", fontSize: "0.78rem", padding: "0.65rem 1.25rem" }}
+            >
+              {isExporting && exportType === "pdf" ? (
+                <>
+                  <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.9s linear infinite" }} />
+                  Exporting…
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  PDF
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleDownloadDOCX}
+              disabled={isExporting}
+              className="btn-secondary"
+              style={{ gap: "0.5rem", fontSize: "0.78rem", padding: "0.65rem 1.25rem" }}
+            >
+              {isExporting && exportType === "docx" ? (
+                <>
+                  <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(168,152,128,0.3)", borderTopColor: "var(--color-olive)", animation: "spin 0.9s linear infinite" }} />
+                  Exporting…
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  DOCX
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Save version button */}
+          <button
+            onClick={handleSaveVersion}
+            disabled={savingVersion || versionSaved}
+            style={{
+              display: "flex", alignItems: "center", gap: "0.375rem",
+              background: "none", border: "none", cursor: versionSaved ? "default" : "pointer",
+              fontSize: "0.72rem", color: versionSaved ? "var(--color-sage)" : "var(--color-stone)",
+              fontFamily: "var(--font-sans)", fontWeight: 500,
+              textDecoration: versionSaved ? "none" : "underline", textUnderlineOffset: "2px",
+            }}
+          >
+            {savingVersion ? (
+              <>
+                <div style={{ width: 10, height: 10, borderRadius: "100%", border: "1.5px solid var(--color-stone-light)", borderTopColor: "var(--color-olive)", animation: "spin 0.9s linear infinite" }} />
+                Saving…
+              </>
+            ) : versionSaved ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--color-sage)" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                Version saved to history
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                Save this version
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Tab Nav ── */}
@@ -90,7 +191,7 @@ const OptimizedResumeView = ({ optimization, jobTitle }: OptimizedResumeViewProp
             <span style={{ padding: "0.3rem 0.875rem", borderRadius: "100px", fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", background: "var(--color-sage-light)", color: "var(--color-sage)" }}>After</span>
             <span style={{ fontSize: "0.85rem", color: "var(--color-stone)" }}>AI-optimized · click to edit</span>
           </div>
-          <div style={{ borderRadius: "1.5rem", overflow: "hidden", border: "1px solid rgba(123,155,126,0.3)", boxShadow: "0 4px 20px rgba(44,35,24,0.08)", background: "#fff" }}>
+          <div style={{ borderRadius: "1.5rem", overflowX: "auto", WebkitOverflowScrolling: "touch", border: "1px solid rgba(123,155,126,0.3)", boxShadow: "0 4px 20px rgba(44,35,24,0.08)", background: "#fff" }}>
             <ResumeTemplate ref={templateRef} data={optimized.parsed} theme={optimized.theme} editable />
           </div>
         </div>
@@ -103,7 +204,7 @@ const OptimizedResumeView = ({ optimization, jobTitle }: OptimizedResumeViewProp
 
       {/* ── CHANGELOG TAB ── */}
       {activeTab === "changelog" && (
-        <div className="card-elevated" style={{ padding: "2.5rem" }}>
+        <div className="card-elevated" style={{ padding: "clamp(1.5rem, 4vw, 2.5rem)" }}>
           <span className="section-label">What Changed</span>
           <h3 style={{ margin: "0.5rem 0 2rem" }}>{optimized.changeLog?.length ?? 0} Improvements Made</h3>
 

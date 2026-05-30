@@ -8,6 +8,7 @@ import OptimizedResumeView from "~/components/OptimizedResumeView";
 import PaywallModal from "~/components/PaywallModal";
 import { checkPremiumStatus } from "~/lib/premium";
 import { runOptimization, type OptimizeProgress } from "~/lib/optimizer";
+import SectionRewriter from "~/components/SectionRewriter";
 
 export const meta = () => ([
   { title: "Resuman — Analysis Result" },
@@ -84,11 +85,10 @@ const Resume = () => {
   }, []);
 
   const handleOptimize = async () => {
-    // TEMPORARILY BYPASS PAYWALL FOR TESTING
-    // if (!isPremium) {
-    //   setShowPaywall(true);
-    //   return;
-    // }
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
     
     if (!resumeText || !feedback) return;
     
@@ -123,11 +123,31 @@ const Resume = () => {
   }
 
   if (feedback && (feedback as any).error === "not_found") {
+    // If the database was wiped but localStorage kept the cache, clear it so they can re-upload
+    try {
+      if (typeof window !== "undefined") {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("resuman_cache_")) {
+            const raw = localStorage.getItem(key);
+            if (raw && raw.includes(id as string)) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
+      }
+    } catch(e) {}
+
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" }}>
         <div style={{ textAlign: "center", color: "var(--color-clay)" }}>
           <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.4rem", margin: "0 0 0.375rem" }}>Résumé Not Found</p>
-          <p>This résumé could not be found in the database. If this is an older résumé, it may not have been migrated to the new database.</p>
+          <p style={{ maxWidth: 400, margin: "0 auto 1.5rem", fontSize: "0.9rem" }}>
+            This résumé could not be found in the database. If this is an older résumé, it may not have been migrated to the new database.
+          </p>
+          <Link to="/upload" className="btn-primary" style={{ padding: "0.6rem 1.25rem", fontSize: "0.85rem", textDecoration: "none" }}>
+            Upload Résumé Again
+          </Link>
         </div>
       </div>
     );
@@ -163,7 +183,7 @@ const Resume = () => {
         position: "sticky", top: 0, zIndex: 50,
         background: "rgba(247,244,239,0.9)", backdropFilter: "blur(14px)",
         borderBottom: "1px solid rgba(196,181,160,0.25)",
-        padding: "1.125rem 3rem",
+        padding: "1.125rem clamp(1rem, 4vw, 3rem)",
         display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
@@ -186,7 +206,7 @@ const Resume = () => {
       </div>
 
       {/* ── Main layout ─────────── */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "3rem 3rem 7rem", display: "flex", flexDirection: "column", gap: "3rem", alignItems: "stretch" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "clamp(1.5rem, 5vw, 3rem) clamp(1.25rem, 4vw, 3rem) 7rem", display: "flex", flexDirection: "column", gap: "3rem", alignItems: "stretch" }}>
 
         {/* Feedback sections */}
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }} className="anim-fade-up anim-delay-2">
@@ -194,13 +214,14 @@ const Resume = () => {
             <OptimizedResumeView 
               optimization={optimizationResult} 
               originalImageUrl={imageUrl} 
-              jobTitle={companyInfo.title} 
+              jobTitle={companyInfo.title}
+              resumeId={id}
             />
           ) : (
             <>
               {/* Premium Auto-Optimize Banner */}
               <div className="card-elevated" style={{ 
-                padding: "2.5rem", 
+                padding: "clamp(1.5rem, 4vw, 2.5rem)", 
                 background: "linear-gradient(135deg, rgba(74,69,53,1) 0%, rgba(44,35,24,1) 100%)", 
                 color: "#F7F4EF",
                 display: "flex", flexDirection: "column", gap: "1.25rem",
@@ -212,7 +233,7 @@ const Resume = () => {
                       <span style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", background: "rgba(255,255,255,0.15)", padding: "0.25rem 0.6rem", borderRadius: "100px", color: "#E0D7C1" }}>Premium</span>
                       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ color: "var(--color-amber-warm)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: "1.8rem", color: "#F7F4EF", fontFamily: "var(--font-serif)", fontWeight: 400 }}>Auto-Optimize My Résumé</h3>
+                    <h3 style={{ margin: 0, fontSize: "clamp(1.3rem, 4vw, 1.8rem)", color: "#F7F4EF", fontFamily: "var(--font-serif)", fontWeight: 400 }}>Auto-Optimize My Résumé</h3>
                   </div>
                   
                   {optimizationProgress ? (
@@ -257,13 +278,22 @@ const Resume = () => {
               <ATS score={feedback.ATS?.score ?? 0} suggestions={feedback.ATS?.tips ?? []} />
               <Summary feedback={feedback} />
               <Details feedback={feedback} />
+
+              {/* Section-by-section rewrite */}
+              {resumeText && (
+                <SectionRewriter
+                  resumeText={resumeText}
+                  jobTitle={companyInfo.title}
+                  jobDescription={jobDescription}
+                />
+              )}
             </>
           )}
         </div>
       </div>
 
       {/* Footer */}
-      <footer style={{ borderTop: "1px solid rgba(196,181,160,0.2)", padding: "2rem 3rem", textAlign: "center" }}>
+      <footer style={{ borderTop: "1px solid rgba(196,181,160,0.2)", padding: "clamp(1.5rem, 4vw, 3rem)", textAlign: "center" }}>
         <span style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-stone-light)" }}>Resuman</span>
       </footer>
 

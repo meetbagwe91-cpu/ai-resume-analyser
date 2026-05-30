@@ -10,21 +10,46 @@ export async function exportToPDF(
   const html2pdf = (await import("html2pdf.js")).default;
 
   const options = {
-    margin: [10, 10, 10, 10] as [number, number, number, number], // mm: top, right, bottom, left
+    margin: [0, 0, 0, 0] as [number, number, number, number],
     filename,
     image: { type: "jpeg" as const, quality: 0.98 },
     html2canvas: {
-      scale: 2,
+      scale: 3,
       useCORS: true,
       letterRendering: true,
+      backgroundColor: "#ffffff",
+      windowWidth: element.scrollWidth,
     },
     jsPDF: {
       unit: "mm",
       format: "a4",
       orientation: "portrait" as const,
     },
-    pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+    pagebreak: { mode: ["css", "legacy"] },
   };
 
   await html2pdf().set(options).from(element).save();
+}
+
+/**
+ * Log a download event to Firestore for the given resume.
+ * This is fire-and-forget — failures are non-fatal.
+ */
+export async function logDownload(resumeId: string, filename: string): Promise<void> {
+  try {
+    const { db } = await import("~/lib/firebase");
+    const { doc, updateDoc, arrayUnion } = await import("firebase/firestore");
+
+    const downloadRecord: DownloadRecord = {
+      downloadedAt: new Date().toISOString(),
+      format: "pdf",
+      filename,
+    };
+
+    await updateDoc(doc(db, "resumes", resumeId), {
+      downloads: arrayUnion(downloadRecord),
+    });
+  } catch (e) {
+    console.warn("Failed to log download:", e);
+  }
 }
