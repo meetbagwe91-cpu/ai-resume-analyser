@@ -13,7 +13,6 @@ export const meta = () => ([
   { name: "description", content: "Upload your résumé for intelligent AI feedback." },
 ]);
 
-// ─── localStorage result cache ────────────────────────────────────────────────
 const CACHE_PREFIX = "resumate_cache_";
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -30,8 +29,6 @@ function writeCache(hash: string, id: string) {
   try { localStorage.setItem(CACHE_PREFIX + hash, JSON.stringify({ id, ts: Date.now() })); } catch {}
 }
 
-// ─── Fire-and-forget background storage upload ────────────────────────────────
-// Returns a promise that NEVER rejects — failures are logged and ignored.
 function uploadToStorage(path: string, blob: File | Blob): Promise<string> {
   return (async () => {
     try {
@@ -46,7 +43,6 @@ function uploadToStorage(path: string, blob: File | Blob): Promise<string> {
   })();
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 const Upload = () => {
   const { isAuthenticated, isLoading, user } = useAppStore();
   const navigate = useNavigate();
@@ -73,10 +69,8 @@ const Upload = () => {
     setIsProcessing(true);
     setIsError(false);
     setStatusStep(0);
-
     if (!user) { fail("You must be logged in."); return; }
 
-    // ── Cache check ───────────────────────────────────────────────────────────
     let fileHash = "";
     try {
       fileHash = await hashFile(file);
@@ -84,118 +78,71 @@ const Upload = () => {
       if (cachedId) { navigate(`/resume/${cachedId}`); return; }
     } catch { /* skip */ }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 1 — Extract text from PDF (ONLY blocking operation before AI)
-    // Firebase Storage is NOT in this critical path — it runs in background.
-    // ═══════════════════════════════════════════════════════════════════════════
     setStatusText("Reading résumé…");
     setStatusStep(0);
-
     let resumeText = "";
-    let imgFile: File | null = null;
-
     try {
-      // Extract text from PDF
       const rawText = await extractTextFromPdfFile(file);
       resumeText = cleanResumeText(rawText);
     } catch (e: any) {
-      console.error("PDF processing error:", e);
       fail(`Could not read PDF: ${e?.message ?? "Unknown error."}`);
       return;
     }
-
     if (!resumeText.trim()) {
       fail("No text found in your PDF. Make sure it is not a scanned image-only document.");
       return;
     }
 
-    // Fire background storage upload for the PDF
     const uid = user.uid;
     const docId = generateUUID();
     const pdfUploadPromise = uploadToStorage(`resumes/${uid}/${generateUUID()}_${file.name}`, file);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 2 — AI Analysis (starts immediately after text extraction)
-    // ═══════════════════════════════════════════════════════════════════════════
     setStatusText("AI is analysing your résumé…");
     setStatusStep(1);
-
     const systemPrompt = prepareInstructions({ jobTitle, jobDescription, AIResponseFormat });
-    const userMessage  = `Resume text:\n\n${resumeText}`;
-
+    const userMessage = `Resume text:\n\n${resumeText}`;
     let raw = "";
     try {
-      raw = await queryGroq(
-        systemPrompt,
-        userMessage,
-        "llama-3.3-70b-versatile",
-        90000,
-        2000
-      );
+      raw = await queryGroq(systemPrompt, userMessage, "llama-3.3-70b-versatile", 90000, 2000);
     } catch (e: any) {
       fail(e?.message ?? "AI analysis failed. Please try again.");
       return;
     }
 
-    // Robust JSON extraction — handles preamble text and markdown fences
     raw = raw.trim();
     const jsonStart = raw.indexOf("{");
-    const jsonEnd   = raw.lastIndexOf("}");
-    if (jsonStart !== -1 && jsonEnd > jsonStart) {
-      raw = raw.slice(jsonStart, jsonEnd + 1);
-    }
+    const jsonEnd = raw.lastIndexOf("}");
+    if (jsonStart !== -1 && jsonEnd > jsonStart) raw = raw.slice(jsonStart, jsonEnd + 1);
 
     let feedback: Feedback;
     try {
       feedback = JSON.parse(raw);
     } catch {
-      console.error("AI raw output (parse failed):", raw);
       fail("AI returned an unexpected format — please try again.");
       return;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // STEP 3 — Save to Firestore, then navigate immediately
-    // Storage URLs are patched into the document once uploads complete.
-    // ═══════════════════════════════════════════════════════════════════════════
     setStatusText("Saving results…");
     setStatusStep(2);
-
     try {
       const { db } = await import("~/lib/firebase");
       const { doc, setDoc, updateDoc } = await import("firebase/firestore");
-
-      // Save immediately with empty storage URLs so user gets result fast
       await setDoc(doc(db, "resumes", docId), {
-        id: docId,
-        userId: uid,
-        companyName,
-        jobTitle,
-        jobDescription,
-        imagePath: "",      // patched in background
-        resumePath: "",     // patched in background
-        resumeText,
-        feedback,
+        id: docId, userId: uid, companyName, jobTitle, jobDescription,
+        imagePath: "", resumePath: "", resumeText, feedback,
         createdAt: new Date().toISOString(),
       });
-
       if (fileHash) writeCache(fileHash, docId);
-
-      // Navigate NOW — user sees results while uploads complete in background
       navigate(`/resume/${docId}`);
-
-      // Patch storage URLs into Firestore once they resolve (non-blocking)
       pdfUploadPromise.then(async (pdfUrl) => {
         try {
           await updateDoc(doc(db, "resumes", docId), {
             ...(pdfUrl ? { resumePath: pdfUrl } : { resumePath: "failed" }),
-            imagePath: "failed" // We no longer use previews
+            imagePath: "failed",
           });
         } catch { /* non-fatal */ }
       });
-
     } catch (e: any) {
-      console.error("Firestore save error:", e);
       fail(`Failed to save results: ${e?.message ?? "Unknown error."}`);
     }
   };
@@ -205,14 +152,14 @@ const Upload = () => {
     if (!file) { setStatusText("Please select a PDF first."); setIsError(true); return; }
     const fd = new FormData(e.currentTarget);
     await handleAnalyze({
-      companyName:    fd.get("companyName")    as string,
-      jobTitle:       fd.get("jobTitle")       as string,
+      companyName: fd.get("companyName") as string,
+      jobTitle: fd.get("jobTitle") as string,
       jobDescription: fd.get("jobDescription") as string,
       file,
     });
   };
 
-  if (!isLoading && !isAuthenticated) { navigate("/auth?next=/upload"); return null; }
+  if (!isLoading && !isAuthenticated) return null;
 
   const STEPS = ["Reading résumé…", "AI is analysing…", "Saving…"];
 
@@ -220,23 +167,41 @@ const Upload = () => {
     <div className="page-shell">
       <Navbar />
 
-      <section style={{ padding: "clamp(3rem, 5vw, 5rem) clamp(1.25rem, 4vw, 3rem) 8rem", maxWidth: 800, margin: "0 auto" }}>
-        <div style={{ position: "fixed", inset: 0, zIndex: -1 }}>
-          <img src="/images/img1.jpeg" alt="Background" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <div style={{ position: "absolute", inset: 0, background: "rgba(247, 244, 239, 0.5)" }} />
-        </div>
+      <div style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}>
+        <img src="/images/img1.jpeg" alt="Background" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }} />
+        <div style={{ position: "absolute", inset: 0, background: "rgba(247, 244, 239, 0.6)" }} />
+      </div>
 
-        <div style={{ marginBottom: "3.5rem", textAlign: "center", position: "relative" }} className="anim-fade-up">
+      <div style={{
+        maxWidth: 720,
+        margin: "0 auto",
+        padding: "clamp(3rem, 6vw, 5rem) 2rem 6rem",
+        width: "100%",
+      }}>
+        {/* Page header */}
+        <div style={{ textAlign: "center", marginBottom: "3rem" }} className="anim-fade-up">
           <span className="section-label">New Analysis</span>
-          <h1 style={{ fontSize: "clamp(2.5rem,5vw,4.5rem)", margin: "0.5rem 0 1rem" }}>Upload your résumé</h1>
-          <p style={{ maxWidth: 440, margin: "0 auto", fontSize: "1rem" }}>
-            Provide the role details and your résumé for precise, role-specific AI feedback.
+          <h1 style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
+            Upload your résumé
+          </h1>
+          <p style={{ maxWidth: 440, margin: "0 auto" }}>
+            Provide your target role details and your résumé for precise, role-specific AI feedback.
           </p>
         </div>
 
-        <div className="card-elevated anim-fade-up anim-delay-1" style={{ padding: "clamp(1.5rem, 5vw, 3rem) clamp(1.5rem, 5vw, 3.5rem)" }}>
+        {/* Form card */}
+        <div className="card-elevated anim-fade-up anim-delay-1" style={{
+          padding: "clamp(2rem, 5vw, 3rem) clamp(1.75rem, 5vw, 3.5rem)",
+        }}>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem", width: "100%", marginBottom: "1.5rem" }}>
+            {/* Company + job title row */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "1.25rem",
+              width: "100%",
+              marginBottom: "1.25rem",
+            }}>
               <div className="field">
                 <label htmlFor="companyName">Target Company</label>
                 <input type="text" name="companyName" id="companyName" placeholder="e.g. Stripe, Google" required />
@@ -247,54 +212,82 @@ const Upload = () => {
               </div>
             </div>
 
-            <div className="field" style={{ width: "100%", marginBottom: "2rem" }}>
+            {/* Job description */}
+            <div className="field" style={{ width: "100%", marginBottom: "1.75rem" }}>
               <label htmlFor="jobDescription">
                 Job Description
-                <span style={{ fontWeight: 300, textTransform: "none", letterSpacing: 0, fontSize: "0.78rem", marginLeft: "0.5rem", color: "var(--color-stone-light)" }}>
+                <span style={{
+                  fontWeight: 400,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  fontSize: "0.78rem",
+                  marginLeft: "0.5rem",
+                  color: "var(--color-stone-light)",
+                }}>
                   (optional, improves accuracy)
                 </span>
               </label>
-              <textarea name="jobDescription" id="jobDescription" placeholder="Paste the full job description here…" rows={4} />
+              <textarea
+                name="jobDescription"
+                id="jobDescription"
+                placeholder="Paste the full job description here…"
+                rows={4}
+              />
             </div>
 
-            <div style={{ width: "100%", marginBottom: "2.5rem" }}>
-              <label style={{ marginBottom: "0.75rem" }}>Résumé Document</label>
+            {/* File uploader */}
+            <div style={{ width: "100%", marginBottom: "2rem" }}>
+              <label style={{ marginBottom: "0.75rem" }}>Résumé Document (PDF)</label>
               <FileUploader onFileSelect={setFile} />
             </div>
 
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem" }}>
+            {/* Submit area */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", width: "100%" }}>
               <button
                 type="submit"
                 disabled={isProcessing || !file}
                 className="btn-primary"
-                style={{ width: "100%", justifyContent: "center", fontSize: "0.85rem", padding: "1.1rem 2rem", opacity: isProcessing || !file ? 0.55 : 1 }}
+                style={{
+                  width: "100%",
+                  padding: "1rem 2rem",
+                  fontSize: "0.85rem",
+                  opacity: isProcessing || !file ? 0.55 : 1,
+                }}
               >
                 {isProcessing ? (
                   <>
-                    <div style={{ width: 16, height: 16, borderRadius: "100%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.9s linear infinite" }} />
+                    <div className="spinner spinner-light" style={{ width: 16, height: 16 }} />
                     Analysing…
                   </>
                 ) : (
                   <>
                     Start Analysis
-                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
                   </>
                 )}
               </button>
 
+              {/* Status feedback */}
               {statusText && (
                 <div style={{
-                  display: "flex", alignItems: "center", gap: "0.625rem",
-                  padding: "0.75rem 1.25rem", borderRadius: "100px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.625rem",
+                  padding: "0.75rem 1.25rem",
+                  borderRadius: "100px",
                   background: isError ? "var(--color-clay-light)" : "var(--color-sage-light)",
-                  border: `1px solid ${isError ? "rgba(168,92,74,0.2)" : "rgba(123,155,126,0.2)"}`,
-                  fontSize: "0.82rem", color: isError ? "var(--color-clay)" : "var(--color-sage)",
+                  border: `1px solid ${isError ? "rgba(168,92,74,0.2)" : "rgba(90,122,92,0.2)"}`,
+                  fontSize: "0.82rem",
+                  color: isError ? "var(--color-clay)" : "var(--color-sage-dark)",
                 }}>
-                  {!isError && <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(123,155,126,0.3)", borderTopColor: "var(--color-sage)", animation: "spin 0.9s linear infinite", flexShrink: 0 }} />}
+                  {!isError && <div className="spinner" style={{ width: 12, height: 12, borderTopColor: "var(--color-sage)" }} />}
                   {statusText}
                 </div>
               )}
 
+              {/* Progress dots */}
               {isProcessing && !isError && (
                 <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
                   {STEPS.map((label, i) => (
@@ -302,7 +295,11 @@ const Upload = () => {
                       height: 4,
                       width: i < statusStep ? 36 : i === statusStep ? 28 : 12,
                       borderRadius: "100px",
-                      background: i < statusStep ? "var(--color-sage)" : i === statusStep ? "var(--color-olive)" : "var(--color-cream-deep)",
+                      background: i < statusStep
+                        ? "var(--color-sage)"
+                        : i === statusStep
+                        ? "var(--color-espresso)"
+                        : "var(--color-ivory-deep)",
                       transition: "width 0.4s ease, background 0.4s ease",
                     }} />
                   ))}
@@ -317,7 +314,7 @@ const Upload = () => {
             </div>
           </form>
         </div>
-      </section>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { exportToPDF, logDownload } from "~/lib/pdf-export";
 import { exportToDOCX } from "~/lib/docx-export";
+import { exportToTXT, exportToJSON } from "~/lib/text-export";
 import ResumeTemplate from "./ResumeTemplate";
 import DiagnosisCard from "./DiagnosisCard";
 
@@ -14,7 +15,7 @@ interface OptimizedResumeViewProps {
 const OptimizedResumeView = ({ optimization, jobTitle, resumeId }: OptimizedResumeViewProps) => {
   const templateRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportType, setExportType] = useState<"pdf" | "docx" | null>(null);
+  const [exportType, setExportType] = useState<"pdf" | "docx" | "txt" | "json" | null>(null);
   const [activeTab, setActiveTab] = useState<"optimized" | "diagnosis" | "changelog">("optimized");
   const [versionSaved, setVersionSaved] = useState(false);
   const [savingVersion, setSavingVersion] = useState(false);
@@ -39,6 +40,32 @@ const OptimizedResumeView = ({ optimization, jobTitle, resumeId }: OptimizedResu
     try {
       const filename = `optimized-resume-${Date.now()}.docx`;
       await exportToDOCX(optimization.optimized.parsed, filename);
+      if (resumeId) logDownload(resumeId, filename);
+    } finally {
+      setIsExporting(false);
+      setExportType(null);
+    }
+  };
+
+  const handleDownloadTXT = () => {
+    setIsExporting(true);
+    setExportType("txt");
+    try {
+      const filename = `optimized-resume-${Date.now()}.txt`;
+      exportToTXT(optimization.optimized.parsed, filename);
+      if (resumeId) logDownload(resumeId, filename);
+    } finally {
+      setIsExporting(false);
+      setExportType(null);
+    }
+  };
+
+  const handleDownloadJSON = () => {
+    setIsExporting(true);
+    setExportType("json");
+    try {
+      const filename = `optimized-resume-${Date.now()}.json`;
+      exportToJSON(optimization, filename);
       if (resumeId) logDownload(resumeId, filename);
     } finally {
       setIsExporting(false);
@@ -85,57 +112,100 @@ const OptimizedResumeView = ({ optimization, jobTitle, resumeId }: OptimizedResu
           </p>
         </div>
 
-        {/* ── Export buttons ── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
+        {/* ── Export panel ── */}
+        <div style={{
+          background: "var(--color-ivory-warm)",
+          border: "1px solid rgba(184,168,152,0.3)",
+          borderRadius: "1.25rem",
+          padding: "1.125rem 1.25rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem",
+          minWidth: 230,
+        }}>
+          <p style={{ margin: 0, fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-stone)", fontWeight: 600 }}>Download As</p>
+
+          {/* Row 1: formatted exports */}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
+              id="download-pdf-btn"
               onClick={handleDownloadPDF}
               disabled={isExporting}
               className="btn-primary"
-              style={{ gap: "0.5rem", fontSize: "0.78rem", padding: "0.65rem 1.25rem" }}
+              style={{ flex: 1, gap: "0.4rem", fontSize: "0.76rem", padding: "0.6rem 0.875rem", justifyContent: "center" }}
+              title="Download as PDF — styled and print-ready"
             >
               {isExporting && exportType === "pdf" ? (
-                <>
-                  <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.9s linear infinite" }} />
-                  Exporting…
-                </>
+                <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "spin 0.9s linear infinite" }} />
               ) : (
-                <>
-                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  PDF
-                </>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               )}
+              PDF
             </button>
             <button
+              id="download-docx-btn"
               onClick={handleDownloadDOCX}
               disabled={isExporting}
               className="btn-secondary"
-              style={{ gap: "0.5rem", fontSize: "0.78rem", padding: "0.65rem 1.25rem" }}
+              style={{ flex: 1, gap: "0.4rem", fontSize: "0.76rem", padding: "0.6rem 0.875rem", justifyContent: "center" }}
+              title="Download as Word document (.docx)"
             >
               {isExporting && exportType === "docx" ? (
-                <>
-                  <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(168,152,128,0.3)", borderTopColor: "var(--color-olive)", animation: "spin 0.9s linear infinite" }} />
-                  Exporting…
-                </>
+                <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(168,152,128,0.3)", borderTopColor: "var(--color-olive)", animation: "spin 0.9s linear infinite" }} />
               ) : (
-                <>
-                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  DOCX
-                </>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               )}
+              DOCX
             </button>
           </div>
 
-          {/* Save version button */}
+          {/* Row 2: raw/plain exports */}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              id="download-txt-btn"
+              onClick={handleDownloadTXT}
+              disabled={isExporting}
+              className="btn-secondary"
+              style={{ flex: 1, gap: "0.4rem", fontSize: "0.76rem", padding: "0.6rem 0.875rem", justifyContent: "center" }}
+              title="Plain text — as-is AI output, clean formatting"
+            >
+              {isExporting && exportType === "txt" ? (
+                <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(168,152,128,0.3)", borderTopColor: "var(--color-olive)", animation: "spin 0.9s linear infinite" }} />
+              ) : (
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" /></svg>
+              )}
+              TXT
+            </button>
+            <button
+              id="download-json-btn"
+              onClick={handleDownloadJSON}
+              disabled={isExporting}
+              className="btn-secondary"
+              style={{ flex: 1, gap: "0.4rem", fontSize: "0.76rem", padding: "0.6rem 0.875rem", justifyContent: "center" }}
+              title="Raw JSON — full AI output with changelog and score"
+            >
+              {isExporting && exportType === "json" ? (
+                <div style={{ width: 12, height: 12, borderRadius: "100%", border: "2px solid rgba(168,152,128,0.3)", borderTopColor: "var(--color-olive)", animation: "spin 0.9s linear infinite" }} />
+              ) : (
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              )}
+              JSON
+            </button>
+          </div>
+
+          <div style={{ height: 1, background: "rgba(184,168,152,0.2)" }} />
+
+          {/* Save version */}
           <button
             onClick={handleSaveVersion}
             disabled={savingVersion || versionSaved}
             style={{
-              display: "flex", alignItems: "center", gap: "0.375rem",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem",
               background: "none", border: "none", cursor: versionSaved ? "default" : "pointer",
               fontSize: "0.72rem", color: versionSaved ? "var(--color-sage)" : "var(--color-stone)",
               fontFamily: "var(--font-sans)", fontWeight: 500,
               textDecoration: versionSaved ? "none" : "underline", textUnderlineOffset: "2px",
+              padding: "0.125rem 0",
             }}
           >
             {savingVersion ? (

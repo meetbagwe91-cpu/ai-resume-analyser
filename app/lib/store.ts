@@ -39,6 +39,10 @@ export const useAppStore = create<AppStore>((set, get) => {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
+      if (err.code === "auth/cancelled-popup-request" || err.code === "auth/popup-closed-by-user") {
+        set({ isLoading: false });
+        return;
+      }
       setError(err.message || "Sign in failed");
     }
   };

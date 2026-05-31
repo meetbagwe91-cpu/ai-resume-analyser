@@ -118,7 +118,7 @@ const FavoriteTemplates = ({ userId }: FavoriteTemplatesProps) => {
               </button>
 
               {/* Theme accent bar */}
-              <div style={{ width: "100%", height: 4, borderRadius: "100px", background: meta.accent, marginBottom: "0.875rem", opacity: 0.7 }} />
+              <div style={{ width: "calc(100% - 32px)", height: 4, borderRadius: "100px", background: meta.accent, marginBottom: "0.875rem", opacity: 0.7 }} />
 
               {/* Theme name */}
               <p style={{ margin: 0, fontSize: "1rem", fontWeight: 600, color: "var(--color-espresso)", fontFamily: "var(--font-serif)" }}>
